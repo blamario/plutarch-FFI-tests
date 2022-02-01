@@ -1,7 +1,7 @@
 cradle:
   cabal:
     - path: "./src"
-      component: "lib:liquidity-bridge"
+      component: "lib:plutarch-ffi-tests"
 
     - path: "./test"
-      component: "test:liquidity-bridge"
+      component: "test:plutarch-ffi-tests"

@@ -1,5 +1,5 @@
 {
-  description = "liquidity-bridge";
+  description = "plutarch-ffi-tests";
 
   inputs.nixpkgs.follows = "plutarch/nixpkgs";
   inputs.haskell-nix.follows = "plutarch/haskell-nix";

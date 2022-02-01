@@ -1,4 +1,4 @@
-module LiquidityBridge (exampleFunction) where
+module Test.PlutarchFFI (exampleFunction) where
 
 import Plutarch.Integer (PInteger)
 import Plutarch.Monadic qualified as P
