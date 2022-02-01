@@ -95,18 +95,11 @@ common common-lang
 
   default-language:   Haskell2010
 
-library
-  import:          common-lang
-  exposed-modules: Test.PlutarchFFI
-  build-depends:   plutarch
-  hs-source-dirs:  src
-
-test-suite plutarch-ffi-tests-test
+test-suite FFI
   import:         common-lang
   type:           exitcode-stdio-1.0
   main-is:        Spec.hs
   build-depends:
-    , plutarch-ffi-tests
     , plutarch
     , QuickCheck
     , quickcheck-instances
