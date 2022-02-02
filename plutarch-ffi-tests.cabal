@@ -73,13 +73,11 @@ common common-lang
     NamedWildCards
     NoStarIsType
     NumericUnderscores
-    OverloadedRecordDot
     OverloadedStrings
     PartialTypeSignatures
     PatternGuards
     PolyKinds
     PostfixOperators
-    QualifiedDo
     RankNTypes
     RelaxedPolyRec
     ScopedTypeVariables
