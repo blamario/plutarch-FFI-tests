@@ -94,9 +94,13 @@ test-suite FFI
   main-is:        Spec.hs
   build-depends:
     , plutarch
+    , plutus-ledger-api
+    , plutus-tx
+    , plutus-tx-plugin
     , QuickCheck
     , quickcheck-instances
     , tasty
+    , tasty-hunit
     , tasty-quickcheck
 
   hs-source-dirs: test

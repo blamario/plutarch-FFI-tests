@@ -5,6 +5,8 @@
   inputs.haskell-nix.follows = "plutarch/haskell-nix";
   inputs.plutarch.url = "github:Plutonomicon/plutarch";
   inputs.plutarch.inputs.nixpkgs.follows = "plutarch/haskell-nix/nixpkgs-unstable";
+  # https://github.com/input-output-hk/plutus/pull/4328
+  inputs.plutus.url = "github:L-as/plutus?ref=master";
 
   outputs = inputs@{ self, nixpkgs, haskell-nix, plutarch, ... }:
     let
@@ -15,7 +17,7 @@
       nixpkgsFor = system: import nixpkgs { inherit system; overlays = [ haskell-nix.overlay ]; inherit (haskell-nix) config; };
       nixpkgsFor' = system: import nixpkgs { inherit system; inherit (haskell-nix) config; };
 
-      ghcVersion = "ghc8107";
+      ghcVersion = "ghc810420210212";
 
       projectFor = system:
         let pkgs = nixpkgsFor system; in
@@ -23,11 +25,17 @@
         (nixpkgsFor system).haskell-nix.cabalProject' {
           src = ./.;
           compiler-nix-name = ghcVersion;
-          inherit (plutarch) cabalProjectLocal;
+          cabalProjectLocal = builtins.replaceStrings ["+use-ghc-stub"] ["-use-ghc-stub"] plutarch.cabalProjectLocal;
           extraSources = plutarch.extraSources ++ [
             {
               src = inputs.plutarch;
               subdirs = [ "." ];
+            }
+            {
+              src = inputs.plutus;
+              subdirs = [
+                "plutus-tx-plugin"
+              ];
             }
           ];
           modules = [ (plutarch.haskellModule system) ];
@@ -44,6 +52,7 @@
 
             additional = ps: [
               ps.plutarch
+              ps.plutus-tx-plugin
               ps.tasty-quickcheck
             ];
           };
@@ -90,5 +99,3 @@
       devShell = perSystem (system: self.flake.${system}.devShell);
     };
 }
-
-
