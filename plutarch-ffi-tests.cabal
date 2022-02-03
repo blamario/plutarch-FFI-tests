@@ -3,12 +3,8 @@ name:               plutarch-ffi-tests
 version:            0.1
 synopsis:           TODO
 description:        TODO
-homepage:
-  https://github.com/mlabs-haskell/plutarch-ffi-tests
-
-bug-reports:
-  https://github.com/mlabs-haskell/plutarch-ffi-tests
-
+homepage:           https://github.com/mlabs-haskell/plutarch-ffi-tests
+bug-reports:        https://github.com/mlabs-haskell/plutarch-ffi-tests
 license:
 license-file:
 author:             MLabs
@@ -21,8 +17,7 @@ extra-source-files: README.md
 
 source-repository head
   type:     git
-  location:
-    https://github.com/mlabs-haskell/plutarch-ffi-tests
+  location: https://github.com/mlabs-haskell/plutarch-ffi-tests
 
 -- Common sections
 
@@ -36,6 +31,7 @@ common common-lang
 
   build-depends:      base >=4.14
   default-extensions:
+    NoStarIsType
     BangPatterns
     BinaryLiterals
     ConstrainedClassMethods
@@ -71,7 +67,6 @@ common common-lang
     MultiParamTypeClasses
     NamedFieldPuns
     NamedWildCards
-    NoStarIsType
     NumericUnderscores
     OverloadedStrings
     PartialTypeSignatures
