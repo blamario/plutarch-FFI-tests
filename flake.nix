@@ -40,7 +40,7 @@
             # Eventually we will probably want to build these with haskell.nix.
             nativeBuildInputs = [ pkgs'.fd pkgs'.cabal-install pkgs'.hlint pkgs'.haskellPackages.cabal-fmt pkgs'.nixpkgs-fmt ];
 
-            inherit (plutarch) tools;
+            # inherit (plutarch) tools;
 
             additional = ps: [
               ps.plutarch
