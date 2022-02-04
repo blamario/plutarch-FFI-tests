@@ -14,10 +14,14 @@ import PlutusTx.Prelude
 import Test.Tasty
 import Test.Tasty.HUnit (testCase, (@?=))
 import Prelude (IO, String)
+import Shrink (shrinkScript)
 import Prelude qualified
 
 printCode :: CompiledCode a -> String
 printCode = printScript . fromCompiledCode
+
+printShrunkCode :: CompiledCode a -> String
+printShrunkCode = printScript . shrinkScript . fromCompiledCode
 
 double :: CompiledCode (Integer -> Integer)
 double = $$(PlutusTx.compile [||(2 *) :: Integer -> Integer||])
@@ -75,15 +79,15 @@ tests =
     , testGroup
       "Records"
       [ testCase "PlutusTx record value" $
-        printCode $$(PlutusTx.compile [|| SampleRecord False 6 "Hello" ||]) @?= sampleScottEncoding
+        printShrunkCode $$(PlutusTx.compile [|| SampleRecord False 6 "Hello" ||]) @?= sampleScottEncoding
       , testCase "Plutarch record value" $
         printTerm (Rec.rcon $ PSampleRecord (pcon PFalse) 6 "Hello") @?= "(program 1.0.0 (\\i0 -> i1 False 6 \"Hello\"))"
       , testCase "PlutusTx record function" $
-        printCode $$(PlutusTx.compile [|| sampleInt ||]) @?= sampleScottField
+        printShrunkCode $$(PlutusTx.compile [|| sampleInt ||]) @?= sampleScottField
       , testCase "Plutarch record function" $
         printTerm (plam $ \r-> r # Rec.field psampleInt) @?= "(program 1.0.0 (\\i0 -> i1 (\\i0 -> \\i0 -> \\i0 -> i2)))"
       ]
     ]
     where
-      sampleScottEncoding = "(program 1.0.0 ((\\i0 -> \\i0 -> \\i0 -> (\\i0 -> \\i0 -> i2 i4 6 \"Hello\") (\\i0 -> \\i0 -> \\i0 -> delay (\\i0 -> i1 i4 i3 i2)) (\\i0 -> i1)) (delay (\\i0 -> \\i0 -> i2)) (delay (\\i0 -> \\i0 -> i1)) (\\i0 -> i1)))"
-      sampleScottField = "(program 1.0.0 ((\\i0 -> \\i0 -> \\i0 -> force (i2 i1) (\\i0 -> \\i0 -> \\i0 -> i2)) (\\i0 -> \\i0 -> \\i0 -> delay (\\i0 -> i1 i4 i3 i2)) (\\i0 -> i1)))"
+      sampleScottEncoding = "(program 1.0.0 (delay (\\i0 -> i1 (delay (\\i0 -> \\i0 -> i1)) 6 \"Hello\")))"
+      sampleScottField = "(program 1.0.0 (\\i0 -> force i1 (\\i0 -> \\i0 -> \\i0 -> i2)))"

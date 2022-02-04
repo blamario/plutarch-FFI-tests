@@ -7,6 +7,7 @@
   inputs.plutarch.inputs.nixpkgs.follows = "plutarch/haskell-nix/nixpkgs-unstable";
   # https://github.com/input-output-hk/plutus/pull/4328
   inputs.plutus.url = "github:L-as/plutus?ref=master";
+  inputs.shrinker.url = "github:Plutonomicon/Shrinker";
 
   outputs = inputs@{ self, nixpkgs, haskell-nix, plutarch, ... }:
     let
@@ -37,6 +38,10 @@
                 "plutus-tx-plugin"
               ];
             }
+            {
+              src = inputs.shrinker;
+              subdirs = [ "." ];
+            }
           ];
           modules = [ (plutarch.haskellModule system) ];
           shell = {
@@ -53,6 +58,7 @@
             additional = ps: [
               ps.plutarch
               ps.plutus-tx-plugin
+              ps.shrinker
               ps.tasty-quickcheck
             ];
           };

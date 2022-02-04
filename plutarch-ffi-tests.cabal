@@ -99,6 +99,7 @@ test-suite FFI
     , plutus-tx-plugin
     , QuickCheck
     , quickcheck-instances
+    , shrinker
     , tasty
     , tasty-hunit
     , tasty-quickcheck
