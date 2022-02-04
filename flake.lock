@@ -909,15 +909,16 @@
         "th-extras": "th-extras"
       },
       "locked": {
-        "lastModified": 1643305179,
-        "narHash": "sha256-yduLdouK9UyyR3b46qvqO73Fg98816Bt2fHbJj2LeIc=",
+        "lastModified": 1643991861,
+        "narHash": "sha256-0M5tOV1MGpAzXxF1JuYNgjwLgLljFQuGUUSdRHQEYDg=",
         "owner": "Plutonomicon",
         "repo": "plutarch",
-        "rev": "7c6421735de75f76b2c8ecdc441ab1296b5d3f11",
+        "rev": "1c4c75c88dbde0b6d3382a2ba0d299c576539966",
         "type": "github"
       },
       "original": {
         "owner": "Plutonomicon",
+        "ref": "mario/FFI-without-tests",
         "repo": "plutarch",
         "type": "github"
       }

@@ -3,7 +3,7 @@
 
   inputs.nixpkgs.follows = "plutarch/nixpkgs";
   inputs.haskell-nix.follows = "plutarch/haskell-nix";
-  inputs.plutarch.url = "github:Plutonomicon/plutarch";
+  inputs.plutarch.url = "github:Plutonomicon/plutarch?ref=mario/FFI-without-tests";
   inputs.plutarch.inputs.nixpkgs.follows = "plutarch/haskell-nix/nixpkgs-unstable";
   # https://github.com/input-output-hk/plutus/pull/4328
   inputs.plutus.url = "github:L-as/plutus?ref=master";
@@ -25,7 +25,7 @@
         (nixpkgsFor system).haskell-nix.cabalProject' {
           src = ./.;
           compiler-nix-name = ghcVersion;
-          cabalProjectLocal = builtins.replaceStrings ["+use-ghc-stub"] ["-use-ghc-stub"] plutarch.cabalProjectLocal;
+          cabalProjectLocal = builtins.replaceStrings [ "+use-ghc-stub" ] [ "-use-ghc-stub" ] plutarch.cabalProjectLocal;
           extraSources = plutarch.extraSources ++ [
             {
               src = inputs.plutarch;
