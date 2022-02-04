@@ -2,6 +2,8 @@
 
 module Main (main) where
 
+import GHC.Generics (Generic)
+import Generics.SOP qualified as SOP
 import Plutarch (printScript, printTerm)
 import Plutarch.FFI (foreignExport, foreignImport)
 import Plutarch.Prelude
@@ -37,6 +39,8 @@ data SampleRecord = SampleRecord
   , sampleInt :: Integer
   , sampleString :: BuiltinString
   }
+  deriving (Generic)
+  deriving anyclass (SOP.Generic)
 
 data PSampleRecord f = PSampleRecord
   { psampleBool :: f PBool
@@ -44,6 +48,12 @@ data PSampleRecord f = PSampleRecord
   , psampleString :: f PString
   }
 $(deriveAll ''PSampleRecord)
+
+importedField :: Term s _
+importedField = foreignImport ($$(PlutusTx.compile [||sampleInt||]) :: CompiledCode (SampleRecord -> Integer))
+
+exportedField :: _ --CompiledCode (SampleRecord -> Integer)
+exportedField = foreignExport (plam $ \r -> r # Rec.field psampleInt)
 
 -- | @since 0.1
 main :: IO ()
@@ -86,6 +96,11 @@ tests =
             printShrunkCode $$(PlutusTx.compile [||sampleInt||]) @?= sampleScottField
         , testCase "Plutarch record function" $
             printTerm (plam $ \r -> r # Rec.field psampleInt) @?= "(program 1.0.0 (\\i0 -> i1 (\\i0 -> \\i0 -> \\i0 -> i2)))"
+        , testCase "Apply PlutusTx record function in Plutarch" $
+            printTerm (importedField #$ pcon $ Rec.PRecord $ PSampleRecord (pcon PFalse) 6 "Hello")
+              @?= "(program 1.0.0 (\\i0 -> i1 (\\i0 -> \\i0 -> \\i0 -> i2)))"
+        , testCase "Apply Plutarch record function in PlutusTx" $
+            printShrunkCode (exportedField `applyCode` $$(PlutusTx.compile [||SampleRecord False 6 "Hello"||])) @?= sampleScottField
         ]
     ]
   where

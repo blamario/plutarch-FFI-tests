@@ -1287,11 +1287,11 @@
         "th-extras": "th-extras"
       },
       "locked": {
-        "lastModified": 1643991861,
-        "narHash": "sha256-0M5tOV1MGpAzXxF1JuYNgjwLgLljFQuGUUSdRHQEYDg=",
+        "lastModified": 1644007453,
+        "narHash": "sha256-2eRqRmudw53+7hFJ1ep5N7loRbGThcOxnpUSlBgCVBU=",
         "owner": "Plutonomicon",
         "repo": "plutarch",
-        "rev": "1c4c75c88dbde0b6d3382a2ba0d299c576539966",
+        "rev": "42b8deb5576503a8acf5c704552c1c025dbc7f4f",
         "type": "github"
       },
       "original": {
