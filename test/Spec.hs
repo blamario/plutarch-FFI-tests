@@ -4,7 +4,7 @@ module Main (main) where
 
 import GHC.Generics (Generic)
 import Generics.SOP qualified as SOP
-import Plutarch (printScript, printTerm)
+import Plutarch (ClosedTerm, compile, printScript, printTerm)
 import Plutarch.FFI (foreignExport, foreignImport)
 import Plutarch.Prelude
 import Plutarch.Rec qualified as Rec
@@ -25,6 +25,9 @@ printCode = printScript . fromCompiledCode
 printShrunkCode :: CompiledCode a -> String
 printShrunkCode = printScript . shrinkScript . fromCompiledCode
 
+printShrunkTerm :: ClosedTerm a -> String
+printShrunkTerm x = printScript $ shrinkScript $ compile x
+
 double :: CompiledCode (Integer -> Integer)
 double = $$(PlutusTx.compile [||(2 *) :: Integer -> Integer||])
 
@@ -39,7 +42,7 @@ data SampleRecord = SampleRecord
   , sampleInt :: Integer
   , sampleString :: BuiltinString
   }
-  deriving (Generic)
+  deriving stock (Generic)
   deriving anyclass (SOP.Generic)
 
 data PSampleRecord f = PSampleRecord
@@ -49,11 +52,12 @@ data PSampleRecord f = PSampleRecord
   }
 $(deriveAll ''PSampleRecord)
 
-importedField :: Term s _
+importedField :: Term _ (PDelayed (Rec.PRecord PSampleRecord) :--> PInteger)
 importedField = foreignImport ($$(PlutusTx.compile [||sampleInt||]) :: CompiledCode (SampleRecord -> Integer))
 
-exportedField :: _ --CompiledCode (SampleRecord -> Integer)
-exportedField = foreignExport (plam $ \r -> r # Rec.field psampleInt)
+exportedField :: CompiledCode (SampleRecord -> Integer)
+exportedField = foreignExport ((plam $ \r -> pforce r # Rec.field psampleInt)
+                                :: Term _ (PDelayed (Rec.ScottEncoding PSampleRecord PInteger) :--> PInteger))
 
 -- | @since 0.1
 main :: IO ()
@@ -91,16 +95,16 @@ tests =
         [ testCase "PlutusTx record value" $
             printShrunkCode $$(PlutusTx.compile [||SampleRecord False 6 "Hello"||]) @?= sampleScottEncoding
         , testCase "Plutarch record value" $
-            printTerm (Rec.rcon $ PSampleRecord (pcon PFalse) 6 "Hello") @?= "(program 1.0.0 (\\i0 -> i1 False 6 \"Hello\"))"
+            printTerm (pdelay $ Rec.rcon $ PSampleRecord (pcon PFalse) 6 "Hello") @?= sampleScottEncoding
         , testCase "PlutusTx record function" $
             printShrunkCode $$(PlutusTx.compile [||sampleInt||]) @?= sampleScottField
         , testCase "Plutarch record function" $
-            printTerm (plam $ \r -> r # Rec.field psampleInt) @?= "(program 1.0.0 (\\i0 -> i1 (\\i0 -> \\i0 -> \\i0 -> i2)))"
+            printTerm (plam $ \r -> pforce r # Rec.field psampleInt) @?= sampleScottField
         , testCase "Apply PlutusTx record function in Plutarch" $
-            printTerm (importedField #$ pcon $ Rec.PRecord $ PSampleRecord (pcon PFalse) 6 "Hello")
-              @?= "(program 1.0.0 (\\i0 -> i1 (\\i0 -> \\i0 -> \\i0 -> i2)))"
+            printShrunkTerm (importedField #$ pdelay $ pcon $ Rec.PRecord $ PSampleRecord (pcon PFalse) 6 "Hello") @?= "(program 1.0.0 6)"
         , testCase "Apply Plutarch record function in PlutusTx" $
-            printShrunkCode (exportedField `applyCode` $$(PlutusTx.compile [||SampleRecord False 6 "Hello"||])) @?= sampleScottField
+            printShrunkCode (exportedField `applyCode` $$(PlutusTx.compile [||SampleRecord False 6 "Hello"||]))
+            @?= "(program 1.0.0 (force ((\\i0 -> delay (\\i0 -> i1 (delay (\\i0 -> \\i0 -> i1)) 6 i2)) \"Hello\") (\\i0 -> \\i0 -> \\i0 -> i2)))"
         ]
     ]
   where

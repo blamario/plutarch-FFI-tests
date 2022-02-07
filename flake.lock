@@ -1287,11 +1287,11 @@
         "th-extras": "th-extras"
       },
       "locked": {
-        "lastModified": 1644007453,
-        "narHash": "sha256-2eRqRmudw53+7hFJ1ep5N7loRbGThcOxnpUSlBgCVBU=",
+        "lastModified": 1644249096,
+        "narHash": "sha256-tH/fX7HGhusgPSEAfvNHZpNycBVOTfif4zTf1xfpv9o=",
         "owner": "Plutonomicon",
         "repo": "plutarch",
-        "rev": "42b8deb5576503a8acf5c704552c1c025dbc7f4f",
+        "rev": "443b4d1d105ab080f69867b8edc0360475faa7bd",
         "type": "github"
       },
       "original": {
@@ -1491,11 +1491,11 @@
         "plutus": "plutus_3"
       },
       "locked": {
-        "lastModified": 1643697552,
-        "narHash": "sha256-gl2e3LSafjSxBC5v+WHhMbZzmdEA60eTRGIBcey0hzo=",
+        "lastModified": 1644252030,
+        "narHash": "sha256-QzQjn0KMQiiKNYu4ab38Pwencz8o5XzE7mwnfK3roC8=",
         "owner": "Plutonomicon",
         "repo": "Shrinker",
-        "rev": "bfed27d1f64a6c9f98635955eec698e0c11d746f",
+        "rev": "b6926764fdf33cfb0da5cd82a5c3dca9f6146a1a",
         "type": "github"
       },
       "original": {
