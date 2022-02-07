@@ -89,6 +89,12 @@ tests =
         , testCase "Exported and applied Plutarch integer function" $
             printCode (doubleExported `applyCode` $$(PlutusTx.compile [||21 :: Integer||]))
               @?= "(program 1.0.0 ((\\i0 -> multiplyInteger 2 i1) 21))"
+        , testCase "Bool->Integer in Plutarch" $
+            printTerm (plam $ \x-> pif x (1 :: Term _ PInteger) 0)
+              @?= "(program 1.0.0 (\\i0 -> force (force ifThenElse i1 (delay 1) (delay 0))))"
+        , testCase "Bool->Integer in PlutusTx" $
+            printShrunkCode $$(PlutusTx.compile [|| \x-> if x then 1 :: Integer else 0 ||])
+              @?= "(program 1.0.0 (\\i0 -> force i1 1 0))"
         ]
     , testGroup
         "Records"
