@@ -35,11 +35,11 @@
     "Shrinker": {
       "flake": false,
       "locked": {
-        "lastModified": 1642430208,
-        "narHash": "sha256-tfWyB7zCLzncwRpyl7eUOzuOBbg9KLu6sxSxRaFlOug=",
+        "lastModified": 1644252030,
+        "narHash": "sha256-QzQjn0KMQiiKNYu4ab38Pwencz8o5XzE7mwnfK3roC8=",
         "owner": "Plutonomicon",
         "repo": "Shrinker",
-        "rev": "0e60707996b876c7bd23a348f54545217ce2e556",
+        "rev": "b6926764fdf33cfb0da5cd82a5c3dca9f6146a1a",
         "type": "github"
       },
       "original": {
@@ -510,11 +510,11 @@
     "hackage": {
       "flake": false,
       "locked": {
-        "lastModified": 1642554756,
-        "narHash": "sha256-1+SN+z80HgKYshlCf8dRxwRojQzuwwsQ5uq14N/JP1Y=",
+        "lastModified": 1643764476,
+        "narHash": "sha256-Jx8rnosHvDmSCqwstjIfOUFUMvGJDYqlUR5Lrek9vO4=",
         "owner": "input-output-hk",
         "repo": "hackage.nix",
-        "rev": "f9d5e67ca90926b244c0ad68815371d37582a149",
+        "rev": "94448e81a86f8cc679148ab182fe972ee711233c",
         "type": "github"
       },
       "original": {
@@ -590,11 +590,11 @@
     "haskell-language-server": {
       "flake": false,
       "locked": {
-        "lastModified": 1642772345,
-        "narHash": "sha256-fjdNOcd0S35OAvMZu81/im32B7hSIimjs08VKQA58Mw=",
+        "lastModified": 1644366046,
+        "narHash": "sha256-Y9M7VQdAgg+FHMmPKZsJF/ZRL0mPN5rfBmJtG+Eu9mw=",
         "owner": "haskell",
         "repo": "haskell-language-server",
-        "rev": "f0bbc390b995953885506b755f4e4b5c6af618fb",
+        "rev": "4b8f9d53bed3e775ccd120d9a2471ae374a88db3",
         "type": "github"
       },
       "original": {
@@ -679,11 +679,11 @@
         "stackage": "stackage"
       },
       "locked": {
-        "lastModified": 1642811877,
-        "narHash": "sha256-7YbbFF4ISWMcs5hHDfH7GkCSccvwEwhvKZ5D74Cuajo=",
+        "lastModified": 1644262810,
+        "narHash": "sha256-aDlkoCfUXm7xbHyVR4TN+m7+yp+3oHqCJS3XOfO9qpo=",
         "owner": "L-as",
         "repo": "haskell.nix",
-        "rev": "ac825b91c202947ec59b1a477003564cc018fcec",
+        "rev": "54453f1d4b6e1743f78f957a18993c2e7b5038f2",
         "type": "github"
       },
       "original": {
@@ -1287,11 +1287,11 @@
         "th-extras": "th-extras"
       },
       "locked": {
-        "lastModified": 1644249096,
-        "narHash": "sha256-tH/fX7HGhusgPSEAfvNHZpNycBVOTfif4zTf1xfpv9o=",
+        "lastModified": 1644437169,
+        "narHash": "sha256-qE3O4ztij0mq5bb/y169NaLDbIMJwLwWHIEXHjlBYFg=",
         "owner": "Plutonomicon",
         "repo": "plutarch",
-        "rev": "443b4d1d105ab080f69867b8edc0360475faa7bd",
+        "rev": "fd11630fa1b6b56e6e0bca8b1a24b11bdbc7767e",
         "type": "github"
       },
       "original": {

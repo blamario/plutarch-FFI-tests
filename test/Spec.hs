@@ -11,6 +11,7 @@ import Plutarch.Rec qualified as Rec
 import Plutarch.Rec.TH (deriveAll)
 import Plutus.V1.Ledger.Scripts (fromCompiledCode)
 import PlutusTx (CompiledCode, applyCode)
+import PlutusTx.Builtins.Internal (BuiltinBool)
 import PlutusTx qualified
 import PlutusTx.Prelude
 import Shrink (shrinkScript)
@@ -38,7 +39,7 @@ doubleExported :: CompiledCode (Integer -> Integer)
 doubleExported = foreignExport (plam $ \(x :: Term _ PInteger) -> 2 Prelude.* x)
 
 data SampleRecord = SampleRecord
-  { sampleBool :: Bool
+  { sampleBool :: BuiltinBool
   , sampleInt :: Integer
   , sampleString :: BuiltinString
   }
@@ -90,7 +91,7 @@ tests =
             printCode (doubleExported `applyCode` $$(PlutusTx.compile [||21 :: Integer||]))
               @?= "(program 1.0.0 ((\\i0 -> multiplyInteger 2 i1) 21))"
         , testCase "Bool->Integer in Plutarch" $
-            printTerm (plam $ \x-> pif x (1 :: Term _ PInteger) 0)
+            printShrunkTerm (plam $ \x-> pif x (1 :: Term _ PInteger) 0)
               @?= "(program 1.0.0 (\\i0 -> force (force ifThenElse i1 (delay 1) (delay 0))))"
         , testCase "Bool->Integer in PlutusTx" $
             printShrunkCode $$(PlutusTx.compile [|| \x-> if x then 1 :: Integer else 0 ||])
@@ -99,7 +100,7 @@ tests =
     , testGroup
         "Records"
         [ testCase "PlutusTx record value" $
-            printShrunkCode $$(PlutusTx.compile [||SampleRecord False 6 "Hello"||]) @?= sampleScottEncoding
+            printShrunkCode $$(PlutusTx.compile [||SampleRecord (toBuiltin False) 6 "Hello"||]) @?= sampleScottEncoding
         , testCase "Plutarch record value" $
             printTerm (pdelay $ Rec.rcon $ PSampleRecord (pcon PFalse) 6 "Hello") @?= sampleScottEncoding
         , testCase "PlutusTx record function" $
@@ -109,10 +110,10 @@ tests =
         , testCase "Apply PlutusTx record function in Plutarch" $
             printShrunkTerm (importedField #$ pdelay $ pcon $ Rec.PRecord $ PSampleRecord (pcon PFalse) 6 "Hello") @?= "(program 1.0.0 6)"
         , testCase "Apply Plutarch record function in PlutusTx" $
-            printShrunkCode (exportedField `applyCode` $$(PlutusTx.compile [||SampleRecord False 6 "Hello"||]))
-            @?= "(program 1.0.0 (force ((\\i0 -> delay (\\i0 -> i1 (delay (\\i0 -> \\i0 -> i1)) 6 i2)) \"Hello\") (\\i0 -> \\i0 -> \\i0 -> i2)))"
+            printShrunkCode (exportedField `applyCode` $$(PlutusTx.compile [||SampleRecord (toBuiltin False) 6 "Hello"||]))
+            @?= "(program 1.0.0 (force ((\\i0 -> delay (\\i0 -> i1 False 6 i2)) \"Hello\") (\\i0 -> \\i0 -> \\i0 -> i2)))"
         ]
     ]
   where
-    sampleScottEncoding = "(program 1.0.0 (delay (\\i0 -> i1 (delay (\\i0 -> \\i0 -> i1)) 6 \"Hello\")))"
+    sampleScottEncoding = "(program 1.0.0 (delay (\\i0 -> i1 False 6 \"Hello\")))"
     sampleScottField = "(program 1.0.0 (\\i0 -> force i1 (\\i0 -> \\i0 -> \\i0 -> i2)))"
