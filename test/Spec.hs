@@ -57,8 +57,8 @@ importedField :: Term _ (PDelayed (Rec.PRecord PSampleRecord) :--> PInteger)
 importedField = foreignImport ($$(PlutusTx.compile [||sampleInt||]) :: CompiledCode (SampleRecord -> Integer))
 
 exportedField :: CompiledCode (SampleRecord -> Integer)
-exportedField = foreignExport ((plam $ \r -> pforce r # Rec.field psampleInt)
-                                :: Term _ (PDelayed (Rec.ScottEncoding PSampleRecord PInteger) :--> PInteger))
+exportedField = foreignExport ((plam $ \r -> pmatch (pforce r) $ \(Rec.PRecord rr)-> psampleInt rr)
+                               :: Term _ (PDelayed (Rec.PRecord PSampleRecord) :--> PInteger))
 
 -- | @since 0.1
 main :: IO ()
