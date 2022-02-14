@@ -5,7 +5,7 @@ module Main (main) where
 import GHC.Generics (Generic)
 import Generics.SOP qualified as SOP
 import Plutarch (ClosedTerm, compile, printScript, printTerm)
-import Plutarch.Api.V1 (PScriptContext, PTxInfo)
+import Plutarch.Api.V1 (PPubKeyHash, PScriptContext, PTxInfo)
 import Plutarch.Evaluate (evaluateScript)
 import Plutarch.FFI (foreignExport, foreignImport)
 import Plutarch.Prelude
@@ -64,11 +64,15 @@ printShrunkCode = printScript . shrinkScriptSp (withoutTactics ["strongUnsubs", 
 
 printEvaluatedCode :: CompiledCode a -> Either ScriptError String
 printEvaluatedCode = fmap (printScript . lastOf3) . evaluateScript . fromCompiledCode
-  where
-    lastOf3 (_, _, x) = x
 
 printShrunkTerm :: ClosedTerm a -> String
 printShrunkTerm x = printScript $ shrinkScript $ compile x
+
+printEvaluatedTerm :: ClosedTerm a -> Either ScriptError String
+printEvaluatedTerm s = fmap (printScript . lastOf3) . evaluateScript $ compile s
+
+lastOf3 :: (_, _, a) -> a
+lastOf3 (_, _, x) = x
 
 double :: CompiledCode (Integer -> Integer)
 double = $$(PlutusTx.compile [||(2 *) :: Integer -> Integer||])
@@ -109,6 +113,12 @@ getTxInfo = pfield @"txInfo"
 
 exportedTxInfo :: CompiledCode (PlutusTx.BuiltinData -> PlutusTx.BuiltinData)
 exportedTxInfo = foreignExport (punsafeCoerce getTxInfo :: ClosedTerm (PData :--> PData))
+
+importedTxSignedBy :: Term _ (PAsData PTxInfo :--> PAsData PPubKeyHash :--> PBool)
+importedTxSignedBy = punsafeCoerce (foreignImport $$(PlutusTx.compile [||txDataSignedBy||]) :: Term _ (PData :--> PData :--> PBool))
+  where
+    txDataSignedBy :: BuiltinData -> BuiltinData -> BuiltinBool
+    txDataSignedBy tx pkh = toBuiltin $ any id (Contexts.txSignedBy <$> PlutusTx.fromBuiltinData tx <*> PlutusTx.fromBuiltinData pkh)
 
 ---- lifted from https://github.com/Plutonomicon/plutarch/blob/master/examples/Examples/Api.hs ----
 
@@ -226,29 +236,41 @@ tests =
         ]
     , testGroup
         "Data"
-        [ testCase "Export data and evaluate a field" $
-            printEvaluatedCode
-              ( $$(PlutusTx.compile [||\gti ctx -> maybe "undecoded" (getTxId . txInfoId) (PlutusTx.fromBuiltinData (gti ctx))||])
-                  `applyCode` exportedTxInfo
-                  `applyCode` PlutusTx.liftCode (PlutusTx.toBuiltinData ctx)
-              )
-              @?= Right "(program 1.0.0 #b0)"
-        , testCase "Export data and evaluate a function to True" $
-            printEvaluatedCode
-              ( $$(PlutusTx.compile [||\gti ctx pkh -> maybe False (`Contexts.txSignedBy` pkh) (PlutusTx.fromBuiltinData (gti ctx))||])
-                  `applyCode` exportedTxInfo
-                  `applyCode` PlutusTx.liftCode (PlutusTx.toBuiltinData ctx)
-                  `applyCode` PlutusTx.liftCode (head signatories)
-              )
-              @?= Right "(program 1.0.0 (delay (\\i0 -> \\i0 -> i2)))"
-        , testCase "Export data and evaluate a function to False" $
-            printEvaluatedCode
-              ( $$(PlutusTx.compile [||\gti ctx pkh -> maybe False (`Contexts.txSignedBy` pkh) (PlutusTx.fromBuiltinData (gti ctx))||])
-                  `applyCode` exportedTxInfo
-                  `applyCode` PlutusTx.liftCode (PlutusTx.toBuiltinData ctx)
-                  `applyCode` PlutusTx.liftCode "0123"
-              )
-              @?= Right "(program 1.0.0 (delay (\\i0 -> \\i0 -> i1)))"
+        [ testGroup
+            "Export and use a PData :--> PData function"
+            [ testCase "evaluate a field" $
+                printEvaluatedCode
+                  ( $$(PlutusTx.compile [||\gti ctx -> maybe "undecoded" (getTxId . txInfoId) (PlutusTx.fromBuiltinData (gti ctx))||])
+                      `applyCode` exportedTxInfo
+                      `applyCode` PlutusTx.liftCode (PlutusTx.toBuiltinData ctx)
+                  )
+                  @?= Right "(program 1.0.0 #b0)"
+            , testCase "evaluate a function to True" $
+                printEvaluatedCode
+                  ( $$(PlutusTx.compile [||\gti ctx pkh -> maybe False (`Contexts.txSignedBy` pkh) (PlutusTx.fromBuiltinData (gti ctx))||])
+                      `applyCode` exportedTxInfo
+                      `applyCode` PlutusTx.liftCode (PlutusTx.toBuiltinData ctx)
+                      `applyCode` PlutusTx.liftCode (head signatories)
+                  )
+                  @?= Right "(program 1.0.0 (delay (\\i0 -> \\i0 -> i2)))"
+            , testCase "evaluate a function to False" $
+                printEvaluatedCode
+                  ( $$(PlutusTx.compile [||\gti ctx pkh -> maybe False (`Contexts.txSignedBy` pkh) (PlutusTx.fromBuiltinData (gti ctx))||])
+                      `applyCode` exportedTxInfo
+                      `applyCode` PlutusTx.liftCode (PlutusTx.toBuiltinData ctx)
+                      `applyCode` PlutusTx.liftCode "0123"
+                  )
+                  @?= Right "(program 1.0.0 (delay (\\i0 -> \\i0 -> i1)))"
+            ]
+        , testGroup
+            "Import and use a BuiltinData -> x function"
+            [ testCase "evaluate a function to True" $
+                printEvaluatedTerm (importedTxSignedBy # pconstantData info # pconstantData (head signatories))
+                  @?= Right "(program 1.0.0 True)"
+            , testCase "evaluate a function to False" $
+                printEvaluatedTerm (importedTxSignedBy # pconstantData info # pconstantData "0123")
+                  @?= Right "(program 1.0.0 False)"
+            ]
         ]
     ]
   where
