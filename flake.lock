@@ -679,11 +679,11 @@
         "stackage": "stackage"
       },
       "locked": {
-        "lastModified": 1644262810,
-        "narHash": "sha256-aDlkoCfUXm7xbHyVR4TN+m7+yp+3oHqCJS3XOfO9qpo=",
+        "lastModified": 1642811877,
+        "narHash": "sha256-7YbbFF4ISWMcs5hHDfH7GkCSccvwEwhvKZ5D74Cuajo=",
         "owner": "L-as",
         "repo": "haskell.nix",
-        "rev": "54453f1d4b6e1743f78f957a18993c2e7b5038f2",
+        "rev": "ac825b91c202947ec59b1a477003564cc018fcec",
         "type": "github"
       },
       "original": {
@@ -1287,8 +1287,8 @@
         "th-extras": "th-extras"
       },
       "locked": {
-        "lastModified": 1644497678,
-        "narHash": "sha256-tgckP8RA05vaA6OOgLJppYNUx8eP3oq8V55WfD8JyWA=",
+        "lastModified": 1644503122,
+        "narHash": "sha256-6+LgDIiDf77zQ070llDvYqcf8RkPYO+BshXClaEOgZY=",
         "type": "git",
         "url": "file:///home/mario/MLabs/plutarch"
       },

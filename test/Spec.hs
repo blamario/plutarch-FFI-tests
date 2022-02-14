@@ -5,18 +5,54 @@ module Main (main) where
 import GHC.Generics (Generic)
 import Generics.SOP qualified as SOP
 import Plutarch (ClosedTerm, compile, printScript, printTerm)
+import Plutarch.Api.V1 (PScriptContext, PTxInfo)
+import Plutarch.Evaluate (evaluateScript)
 import Plutarch.FFI (foreignExport, foreignImport)
 import Plutarch.Prelude
 import Plutarch.Rec qualified as Rec
 import Plutarch.Rec.TH (deriveAll)
-import Plutus.V1.Ledger.Scripts (fromCompiledCode)
+import Plutarch.Unsafe (punsafeCoerce)
+import Plutus.V1.Ledger.Api (
+  Address (Address),
+  Credential (ScriptCredential),
+  CurrencySymbol,
+  DatumHash,
+  PubKeyHash,
+  ScriptContext (ScriptContext),
+  ScriptPurpose (Spending),
+  TxInInfo (TxInInfo, txInInfoOutRef, txInInfoResolved),
+  TxInfo (
+    TxInfo,
+    txInfoDCert,
+    txInfoData,
+    txInfoFee,
+    txInfoId,
+    txInfoInputs,
+    txInfoMint,
+    txInfoOutputs,
+    txInfoSignatories,
+    txInfoValidRange,
+    txInfoWdrl
+  ),
+  TxOut (TxOut, txOutAddress, txOutDatumHash, txOutValue),
+  TxOutRef (TxOutRef),
+  ValidatorHash,
+  Value,
+  getTxId,
+ )
+import Plutus.V1.Ledger.Contexts qualified as Contexts
+import Plutus.V1.Ledger.Interval qualified as Interval
+import Plutus.V1.Ledger.Scripts (ScriptError, fromCompiledCode)
+import Plutus.V1.Ledger.Value qualified as Value
 import PlutusTx (CompiledCode, applyCode)
-import PlutusTx.Builtins.Internal (BuiltinBool)
 import PlutusTx qualified
+import PlutusTx.Builtins.Internal (BuiltinBool)
 import PlutusTx.Prelude
-import Shrink (shrinkScript)
+import Shrink (shrinkScript, shrinkScriptSp, withoutTactics)
 import Test.Tasty
 import Test.Tasty.HUnit (testCase, (@?=))
+
+-- import Test.Tasty.Plutus.Internal.Context (ContextBuilder (cbSignatories), TransactionConfig(..), compileSpending)
 import Prelude (IO, String)
 import Prelude qualified
 
@@ -24,7 +60,12 @@ printCode :: CompiledCode a -> String
 printCode = printScript . fromCompiledCode
 
 printShrunkCode :: CompiledCode a -> String
-printShrunkCode = printScript . shrinkScript . fromCompiledCode
+printShrunkCode = printScript . shrinkScriptSp (withoutTactics ["strongUnsubs", "weakUnsubs"]) . fromCompiledCode
+
+printEvaluatedCode :: CompiledCode a -> Either ScriptError String
+printEvaluatedCode = fmap (printScript . lastOf3) . evaluateScript . fromCompiledCode
+  where
+    lastOf3 (_, _, x) = x
 
 printShrunkTerm :: ClosedTerm a -> String
 printShrunkTerm x = printScript $ shrinkScript $ compile x
@@ -57,8 +98,78 @@ importedField :: Term _ (PDelayed (Rec.PRecord PSampleRecord) :--> PInteger)
 importedField = foreignImport ($$(PlutusTx.compile [||sampleInt||]) :: CompiledCode (SampleRecord -> Integer))
 
 exportedField :: CompiledCode (SampleRecord -> Integer)
-exportedField = foreignExport ((plam $ \r -> pmatch (pforce r) $ \(Rec.PRecord rr)-> psampleInt rr)
-                               :: Term _ (PDelayed (Rec.PRecord PSampleRecord) :--> PInteger))
+exportedField =
+  foreignExport
+    ( (plam $ \r -> pmatch (pforce r) $ \(Rec.PRecord rr) -> psampleInt rr) ::
+        Term _ (PDelayed (Rec.PRecord PSampleRecord) :--> PInteger)
+    )
+
+getTxInfo :: Term _ (PAsData PScriptContext :--> PAsData PTxInfo)
+getTxInfo = pfield @"txInfo"
+
+exportedTxInfo :: CompiledCode (PlutusTx.BuiltinData -> PlutusTx.BuiltinData)
+exportedTxInfo = foreignExport (punsafeCoerce getTxInfo :: ClosedTerm (PData :--> PData))
+
+---- lifted from https://github.com/Plutonomicon/plutarch/blob/master/examples/Examples/Api.hs ----
+
+{- |
+  An example 'PScriptContext' Term,
+  lifted with 'pconstant'
+-}
+ctx :: ScriptContext
+ctx = ScriptContext info purpose
+
+-- | Simple script context, with minting and a single input
+info :: TxInfo
+info =
+  TxInfo
+    { txInfoInputs = [inp]
+    , txInfoOutputs = []
+    , txInfoFee = mempty
+    , txInfoMint = mint
+    , txInfoDCert = []
+    , txInfoWdrl = []
+    , txInfoValidRange = Interval.always
+    , txInfoSignatories = signatories
+    , txInfoData = []
+    , txInfoId = "b0"
+    }
+
+-- | A script input
+inp :: TxInInfo
+inp =
+  TxInInfo
+    { txInInfoOutRef = ref
+    , txInInfoResolved =
+        TxOut
+          { txOutAddress =
+              Address (ScriptCredential validator) Nothing
+          , txOutValue = mempty
+          , txOutDatumHash = Just datum
+          }
+    }
+
+-- | Minting a single token
+mint :: Value
+mint = Value.singleton sym "sometoken" 1
+
+ref :: TxOutRef
+ref = TxOutRef "a0" 0
+
+purpose :: ScriptPurpose
+purpose = Spending ref
+
+validator :: ValidatorHash
+validator = "a1"
+
+datum :: DatumHash
+datum = "d0"
+
+sym :: CurrencySymbol
+sym = "c0"
+
+signatories :: [PubKeyHash]
+signatories = ["ab01fe235c", "123014", "abcdef"]
 
 -- | @since 0.1
 main :: IO ()
@@ -91,10 +202,10 @@ tests =
             printCode (doubleExported `applyCode` $$(PlutusTx.compile [||21 :: Integer||]))
               @?= "(program 1.0.0 ((\\i0 -> multiplyInteger 2 i1) 21))"
         , testCase "Bool->Integer in Plutarch" $
-            printShrunkTerm (plam $ \x-> pif x (1 :: Term _ PInteger) 0)
+            printShrunkTerm (plam $ \x -> pif x (1 :: Term _ PInteger) 0)
               @?= "(program 1.0.0 (\\i0 -> force (force ifThenElse i1 (delay 1) (delay 0))))"
         , testCase "Bool->Integer in PlutusTx" $
-            printShrunkCode $$(PlutusTx.compile [|| \x-> if x then 1 :: Integer else 0 ||])
+            printShrunkCode $$(PlutusTx.compile [||\x -> if x then 1 :: Integer else 0||])
               @?= "(program 1.0.0 (\\i0 -> force i1 1 0))"
         ]
     , testGroup
@@ -111,7 +222,33 @@ tests =
             printShrunkTerm (importedField #$ pdelay $ pcon $ Rec.PRecord $ PSampleRecord (pcon PFalse) 6 "Hello") @?= "(program 1.0.0 6)"
         , testCase "Apply Plutarch record function in PlutusTx" $
             printShrunkCode (exportedField `applyCode` $$(PlutusTx.compile [||SampleRecord (toBuiltin False) 6 "Hello"||]))
-            @?= "(program 1.0.0 (force ((\\i0 -> delay (\\i0 -> i1 False 6 i2)) \"Hello\") (\\i0 -> \\i0 -> \\i0 -> i2)))"
+              @?= "(program 1.0.0 (force ((\\i0 -> delay (\\i0 -> i1 False 6 i2)) \"Hello\") (\\i0 -> \\i0 -> \\i0 -> i2)))"
+        ]
+    , testGroup
+        "Data"
+        [ testCase "Export data and evaluate a field" $
+            printEvaluatedCode
+              ( $$(PlutusTx.compile [||\gti ctx -> maybe "undecoded" (getTxId . txInfoId) (PlutusTx.fromBuiltinData (gti ctx))||])
+                  `applyCode` exportedTxInfo
+                  `applyCode` PlutusTx.liftCode (PlutusTx.toBuiltinData ctx)
+              )
+              @?= Right "(program 1.0.0 #b0)"
+        , testCase "Export data and evaluate a function to True" $
+            printEvaluatedCode
+              ( $$(PlutusTx.compile [||\gti ctx pkh -> maybe False (`Contexts.txSignedBy` pkh) (PlutusTx.fromBuiltinData (gti ctx))||])
+                  `applyCode` exportedTxInfo
+                  `applyCode` PlutusTx.liftCode (PlutusTx.toBuiltinData ctx)
+                  `applyCode` PlutusTx.liftCode (head signatories)
+              )
+              @?= Right "(program 1.0.0 (delay (\\i0 -> \\i0 -> i2)))"
+        , testCase "Export data and evaluate a function to False" $
+            printEvaluatedCode
+              ( $$(PlutusTx.compile [||\gti ctx pkh -> maybe False (`Contexts.txSignedBy` pkh) (PlutusTx.fromBuiltinData (gti ctx))||])
+                  `applyCode` exportedTxInfo
+                  `applyCode` PlutusTx.liftCode (PlutusTx.toBuiltinData ctx)
+                  `applyCode` PlutusTx.liftCode "0123"
+              )
+              @?= Right "(program 1.0.0 (delay (\\i0 -> \\i0 -> i1)))"
         ]
     ]
   where
