@@ -11,7 +11,6 @@ import Plutarch.FFI (foreignExport, foreignImport)
 import Plutarch.Prelude
 import Plutarch.Rec qualified as Rec
 import Plutarch.Rec.TH (deriveAll)
-import Plutarch.Unsafe (punsafeCoerce)
 import Plutus.V1.Ledger.Api (
   Address (Address),
   Credential (ScriptCredential),
@@ -112,10 +111,10 @@ getTxInfo :: Term _ (PAsData PScriptContext :--> PAsData PTxInfo)
 getTxInfo = pfield @"txInfo"
 
 exportedTxInfo :: CompiledCode (PlutusTx.BuiltinData -> PlutusTx.BuiltinData)
-exportedTxInfo = foreignExport (punsafeCoerce getTxInfo :: ClosedTerm (PData :--> PData))
+exportedTxInfo = foreignExport getTxInfo
 
 importedTxSignedBy :: Term _ (PAsData PTxInfo :--> PAsData PPubKeyHash :--> PBool)
-importedTxSignedBy = punsafeCoerce (foreignImport $$(PlutusTx.compile [||txDataSignedBy||]) :: Term _ (PData :--> PData :--> PBool))
+importedTxSignedBy = foreignImport $$(PlutusTx.compile [||txDataSignedBy||])
   where
     txDataSignedBy :: BuiltinData -> BuiltinData -> BuiltinBool
     txDataSignedBy tx pkh = toBuiltin $ any id (Contexts.txSignedBy <$> PlutusTx.fromBuiltinData tx <*> PlutusTx.fromBuiltinData pkh)
