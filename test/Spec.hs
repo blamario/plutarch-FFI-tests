@@ -59,7 +59,9 @@ printCode :: CompiledCode a -> String
 printCode = printScript . fromCompiledCode
 
 printShrunkCode :: CompiledCode a -> String
-printShrunkCode = printScript . shrinkScriptSp (withoutTactics ["strongUnsubs", "weakUnsubs"]) . fromCompiledCode
+printShrunkCode = printScript . shrink . shrink . shrink . fromCompiledCode
+  where
+    shrink = shrinkScriptSp (withoutTactics ["strongUnsubs", "weakUnsubs"])
 
 printEvaluatedCode :: CompiledCode a -> Either ScriptError String
 printEvaluatedCode = fmap (printScript . lastOf3) . evaluateScript . fromCompiledCode
@@ -231,7 +233,7 @@ tests =
             printShrunkTerm (importedField #$ pdelay $ pcon $ Rec.PRecord $ PSampleRecord (pcon PFalse) 6 "Hello") @?= "(program 1.0.0 6)"
         , testCase "Apply Plutarch record function in PlutusTx" $
             printShrunkCode (exportedField `applyCode` $$(PlutusTx.compile [||SampleRecord (toBuiltin False) 6 "Hello"||]))
-              @?= "(program 1.0.0 (force ((\\i0 -> delay (\\i0 -> i1 False 6 i2)) \"Hello\") (\\i0 -> \\i0 -> \\i0 -> i2)))"
+              @?= "(program 1.0.0 6)"
         ]
     , testGroup
         "Data"
