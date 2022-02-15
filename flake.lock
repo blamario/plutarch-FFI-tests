@@ -1287,8 +1287,8 @@
         "th-extras": "th-extras"
       },
       "locked": {
-        "lastModified": 1644849096,
-        "narHash": "sha256-Dmfbuddkxmu4HwN01FPxv9Uv2tg5k/am1lqneyNbNG8=",
+        "lastModified": 1644934482,
+        "narHash": "sha256-aTRxhNTfKIQaw/90TSuNxFZ9/4KohCHRNWjRUwvIDRo=",
         "type": "git",
         "url": "file:///home/mario/MLabs/plutarch"
       },

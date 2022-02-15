@@ -16,7 +16,7 @@ import Plutus.V1.Ledger.Api (
   Credential (ScriptCredential),
   CurrencySymbol,
   DatumHash,
-  PubKeyHash,
+  PubKeyHash (..),
   ScriptContext (ScriptContext),
   ScriptPurpose (Spending),
   TxInInfo (TxInInfo, txInInfoOutRef, txInInfoResolved),
@@ -121,6 +121,12 @@ importedTxSignedBy = foreignImport $$(PlutusTx.compile [||txDataSignedBy||])
     txDataSignedBy :: BuiltinData -> BuiltinData -> BuiltinBool
     txDataSignedBy tx pkh = toBuiltin $ any id (Contexts.txSignedBy <$> PlutusTx.fromBuiltinData tx <*> PlutusTx.fromBuiltinData pkh)
 
+importedTxSignedBy' :: Term _ (PAsData PTxInfo :--> PPubKeyHash :--> PBool)
+importedTxSignedBy' = foreignImport $$(PlutusTx.compile [||txDataSignedBy||])
+  where
+    txDataSignedBy :: BuiltinData -> PubKeyHash -> BuiltinBool
+    txDataSignedBy tx pkh = toBuiltin $ any id (flip Contexts.txSignedBy pkh <$> PlutusTx.fromBuiltinData tx)
+
 ---- lifted from https://github.com/Plutonomicon/plutarch/blob/master/examples/Examples/Api.hs ----
 
 {- |
@@ -218,6 +224,8 @@ tests =
         , testCase "Bool->Integer in PlutusTx" $
             printShrunkCode $$(PlutusTx.compile [||\x -> if x then 1 :: Integer else 0||])
               @?= "(program 1.0.0 (\\i0 -> force i1 1 0))"
+        , testCase "newtype in PlutusTx" $
+            printShrunkCode $$(PlutusTx.compile [|| PubKeyHash ||]) @?= "(program 1.0.0 (\\i0 -> i1))"
         ]
     , testGroup
         "Records"
@@ -248,7 +256,7 @@ tests =
                   @?= Right "(program 1.0.0 #b0)"
             , testCase "evaluate a function to True" $
                 printEvaluatedCode
-                  ( $$(PlutusTx.compile [||\gti ctx pkh -> maybe False (`Contexts.txSignedBy` pkh) (PlutusTx.fromBuiltinData (gti ctx))||])
+                  ( $$(PlutusTx.compile [||\gti ctx pkh -> any (`Contexts.txSignedBy` pkh) (PlutusTx.fromBuiltinData (gti ctx))||])
                       `applyCode` exportedTxInfo
                       `applyCode` PlutusTx.liftCode (PlutusTx.toBuiltinData ctx)
                       `applyCode` PlutusTx.liftCode (head signatories)
@@ -256,7 +264,7 @@ tests =
                   @?= Right "(program 1.0.0 (delay (\\i0 -> \\i0 -> i2)))"
             , testCase "evaluate a function to False" $
                 printEvaluatedCode
-                  ( $$(PlutusTx.compile [||\gti ctx pkh -> maybe False (`Contexts.txSignedBy` pkh) (PlutusTx.fromBuiltinData (gti ctx))||])
+                  ( $$(PlutusTx.compile [||\gti ctx pkh -> any (`Contexts.txSignedBy` pkh) (PlutusTx.fromBuiltinData (gti ctx))||])
                       `applyCode` exportedTxInfo
                       `applyCode` PlutusTx.liftCode (PlutusTx.toBuiltinData ctx)
                       `applyCode` PlutusTx.liftCode "0123"
@@ -265,11 +273,17 @@ tests =
             ]
         , testGroup
             "Import and use a BuiltinData -> x function"
-            [ testCase "evaluate a function to True" $
+            [ testCase "evaluate a Data -> Data -> Bool function to True" $
                 printEvaluatedTerm (importedTxSignedBy # pconstantData info # pconstantData (head signatories))
                   @?= Right "(program 1.0.0 True)"
-            , testCase "evaluate a function to False" $
+            , testCase "evaluate a Data -> Data -> Bool function to False" $
                 printEvaluatedTerm (importedTxSignedBy # pconstantData info # pconstantData "0123")
+                  @?= Right "(program 1.0.0 False)"
+            , testCase "evaluate a Data -> PubKeyHash -> Bool function to True" $
+                printEvaluatedTerm (importedTxSignedBy' # pconstantData info # pconstant (head signatories))
+                  @?= Right "(program 1.0.0 True)"
+            , testCase "evaluate a Data -> PubKeyHash -> Bool function to False" $
+                printEvaluatedTerm (importedTxSignedBy' # pconstantData info # pconstant "0123")
                   @?= Right "(program 1.0.0 False)"
             ]
         ]
