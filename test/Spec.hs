@@ -5,9 +5,11 @@ module Main (main) where
 import GHC.Generics (Generic)
 import Generics.SOP qualified as SOP
 import Plutarch (ClosedTerm, compile, printScript, printTerm)
-import Plutarch.Api.V1 (PPubKeyHash, PScriptContext, PTxInfo)
+import Plutarch.Api.V1 (PCurrencySymbol, PPubKeyHash, PScriptContext, PTokenName, PTxInfo)
 import Plutarch.Evaluate (evaluateScript)
 import Plutarch.FFI (foreignExport, foreignImport)
+import Plutarch.List
+import Plutarch.Pair
 import Plutarch.Prelude
 import Plutarch.Rec qualified as Rec
 import Plutarch.Rec.TH (deriveAll)
@@ -37,6 +39,8 @@ import Plutus.V1.Ledger.Api (
   TxOutRef (TxOutRef),
   ValidatorHash,
   Value,
+  adaSymbol,
+  adaToken,
   getTxId,
  )
 import Plutus.V1.Ledger.Contexts qualified as Contexts
@@ -127,6 +131,10 @@ importedTxSignedBy' = foreignImport $$(PlutusTx.compile [||txDataSignedBy||])
     txDataSignedBy :: BuiltinData -> PubKeyHash -> BuiltinBool
     txDataSignedBy tx pkh = toBuiltin $ any id (flip Contexts.txSignedBy pkh <$> PlutusTx.fromBuiltinData tx)
 
+type PSValue = PSMap PCurrencySymbol (PSMap PTokenName PInteger)
+
+type PSMap k v = PList (PPair k v)
+
 ---- lifted from https://github.com/Plutonomicon/plutarch/blob/master/examples/Examples/Api.hs ----
 
 {- |
@@ -143,7 +151,7 @@ info =
     { txInfoInputs = [inp]
     , txInfoOutputs = []
     , txInfoFee = mempty
-    , txInfoMint = mint
+    , txInfoMint = val
     , txInfoDCert = []
     , txInfoWdrl = []
     , txInfoValidRange = Interval.always
@@ -166,9 +174,8 @@ inp =
           }
     }
 
--- | Minting a single token
-mint :: Value
-mint = Value.singleton sym "sometoken" 1
+val :: Value
+val = Value.singleton sym "sometoken" 1 <> Value.singleton adaSymbol adaToken 2
 
 ref :: TxOutRef
 ref = TxOutRef "a0" 0
@@ -225,11 +232,11 @@ tests =
             printShrunkCode $$(PlutusTx.compile [||\x -> if x then 1 :: Integer else 0||])
               @?= "(program 1.0.0 (\\i0 -> force i1 1 0))"
         , testCase "newtype in PlutusTx" $
-            printShrunkCode $$(PlutusTx.compile [|| PubKeyHash ||]) @?= "(program 1.0.0 (\\i0 -> i1))"
+            printShrunkCode $$(PlutusTx.compile [||PubKeyHash||]) @?= "(program 1.0.0 (\\i0 -> i1))"
         , testCase "exported unit to PlutusTx" $
             printShrunkCode (foreignExport (pconstant ()) :: CompiledCode BuiltinUnit) @?= "(program 1.0.0 ())"
         , testCase "imported unit from PlutusTx" $
-            printShrunkTerm (foreignImport $$(PlutusTx.compile [|| toBuiltin () ||]) :: ClosedTerm PUnit) @?= "(program 1.0.0 ())"
+            printShrunkTerm (foreignImport $$(PlutusTx.compile [||toBuiltin ()||]) :: ClosedTerm PUnit) @?= "(program 1.0.0 ())"
         ]
     , testGroup
         "Records"
@@ -246,6 +253,29 @@ tests =
         , testCase "Apply Plutarch record function in PlutusTx" $
             printShrunkCode (exportedField `applyCode` $$(PlutusTx.compile [||SampleRecord (toBuiltin False) 6 "Hello"||]))
               @?= "(program 1.0.0 6)"
+        , testCase "import a pair" $
+            printEvaluatedTerm
+              ( foreignImport (PlutusTx.liftCode ("foo" :: BuiltinString, 4 :: Integer)) ::
+                  Term _ (PDelayed (PPair PString PInteger))
+              )
+              @?= Right "(program 1.0.0 (delay (\\i0 -> i1 \"foo\" 4)))"
+        , testCase "import a pair" $
+            printEvaluatedTerm
+              ( foreignImport (PlutusTx.liftCode ("foo" :: Value.TokenName, 4 :: Integer)) ::
+                  Term _ (PDelayed (PPair PTokenName PInteger))
+              )
+              @?= Right "(program 1.0.0 (delay (\\i0 -> i1 #666f6f 4)))"
+        ]
+    , testGroup
+        "Lists"
+        [ testCase "a PlutusTx list of integers" $
+            printShrunkCode (PlutusTx.liftCode [1 :: Integer .. 3]) @?= oneTwoThree
+{-
+        , testCase "import a list of integers" $
+            printEvaluatedTerm (foreignImport (PlutusTx.liftCode [1 :: Integer .. 3]) :: Term _ (PList PInteger)) @?= oneTwoThree
+        , testCase "import and map over a Value" $
+            printEvaluatedTerm (foreignImport val :: Term _ PSValue) @?= oneTwoThree
+-}
         ]
     , testGroup
         "Data"
@@ -295,3 +325,4 @@ tests =
   where
     sampleScottEncoding = "(program 1.0.0 (delay (\\i0 -> i1 False 6 \"Hello\")))"
     sampleScottField = "(program 1.0.0 (\\i0 -> force i1 (\\i0 -> \\i0 -> \\i0 -> i2)))"
+    oneTwoThree = "(program 1.0.0 (delay (\\i0 -> \\i0 -> i1 1 (delay (\\i0 -> \\i0 -> i1 2 (delay (\\i0 -> \\i0 -> i1 3 (delay (\\i0 -> \\i0 -> i2)))))))))"
