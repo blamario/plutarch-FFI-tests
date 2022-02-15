@@ -45,7 +45,7 @@ import Plutus.V1.Ledger.Scripts (ScriptError, fromCompiledCode)
 import Plutus.V1.Ledger.Value qualified as Value
 import PlutusTx (CompiledCode, applyCode)
 import PlutusTx qualified
-import PlutusTx.Builtins.Internal (BuiltinBool)
+import PlutusTx.Builtins.Internal (BuiltinBool, BuiltinUnit)
 import PlutusTx.Prelude
 import Shrink (shrinkScript, shrinkScriptSp, withoutTactics)
 import Test.Tasty
@@ -226,6 +226,10 @@ tests =
               @?= "(program 1.0.0 (\\i0 -> force i1 1 0))"
         , testCase "newtype in PlutusTx" $
             printShrunkCode $$(PlutusTx.compile [|| PubKeyHash ||]) @?= "(program 1.0.0 (\\i0 -> i1))"
+        , testCase "exported unit to PlutusTx" $
+            printShrunkCode (foreignExport (pconstant ()) :: CompiledCode BuiltinUnit) @?= "(program 1.0.0 ())"
+        , testCase "imported unit from PlutusTx" $
+            printShrunkTerm (foreignImport $$(PlutusTx.compile [|| toBuiltin () ||]) :: ClosedTerm PUnit) @?= "(program 1.0.0 ())"
         ]
     , testGroup
         "Records"

@@ -1287,8 +1287,11 @@
         "th-extras": "th-extras"
       },
       "locked": {
-        "lastModified": 1644934482,
-        "narHash": "sha256-aTRxhNTfKIQaw/90TSuNxFZ9/4KohCHRNWjRUwvIDRo=",
+        "lastModified": 1644946443,
+        "narHash": "sha256-gwLMlpoUnDC2jtQCDZo4LN/TF2RpicHgsbSTrlc4YK4=",
+        "ref": "mario/FFI-without-tests",
+        "rev": "93eca7e63a26ab68efbb71dd2301d3cdbc17c56c",
+        "revCount": 817,
         "type": "git",
         "url": "file:///home/mario/MLabs/plutarch"
       },
