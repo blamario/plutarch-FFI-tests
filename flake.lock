@@ -1287,11 +1287,11 @@
         "th-extras": "th-extras"
       },
       "locked": {
-        "lastModified": 1644946443,
-        "narHash": "sha256-gwLMlpoUnDC2jtQCDZo4LN/TF2RpicHgsbSTrlc4YK4=",
+        "lastModified": 1645044339,
+        "narHash": "sha256-SQ1o9pfOgzbakhwxd9S1uT/SYg/VOKbZd03h6SQiW/k=",
         "ref": "mario/FFI-without-tests",
-        "rev": "93eca7e63a26ab68efbb71dd2301d3cdbc17c56c",
-        "revCount": 817,
+        "rev": "9e76467d72aa0261db0b60396a1106fa02f464e0",
+        "revCount": 818,
         "type": "git",
         "url": "file:///home/mario/MLabs/plutarch"
       },

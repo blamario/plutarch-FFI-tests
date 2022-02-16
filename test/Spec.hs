@@ -7,9 +7,8 @@ import Generics.SOP qualified as SOP
 import Plutarch (ClosedTerm, compile, printScript, printTerm)
 import Plutarch.Api.V1 (PCurrencySymbol, PPubKeyHash, PScriptContext, PTokenName, PTxInfo)
 import Plutarch.Evaluate (evaluateScript)
-import Plutarch.FFI (foreignExport, foreignImport)
-import Plutarch.List
-import Plutarch.Pair
+import Plutarch.FFI (PDelayedList, foreignExport, foreignImport)
+import Plutarch.List (pconvertLists)
 import Plutarch.Prelude
 import Plutarch.Rec qualified as Rec
 import Plutarch.Rec.TH (deriveAll)
@@ -133,7 +132,19 @@ importedTxSignedBy' = foreignImport $$(PlutusTx.compile [||txDataSignedBy||])
 
 type PSValue = PSMap PCurrencySymbol (PSMap PTokenName PInteger)
 
-type PSMap k v = PList (PPair k v)
+type PSMap k v = PDelayedList (PDelayed (PPair k v))
+
+sumValueAmounts :: Term _ (PSValue :--> PInteger)
+sumValueAmounts =
+  pfoldl
+  # (plam $ \s vals -> pfoldl # (plam $ \s' p -> s' Prelude.+ psnd # p) # s # (psnd # vals))
+  # 0
+
+pfst :: Term s (PDelayed (PPair a b) :--> a)
+pfst = plam $ \p -> pmatch (pforce p) $ \(PPair x _) -> x
+
+psnd :: Term s (PDelayed (PPair a b) :--> b)
+psnd = plam $ \p -> pmatch (pforce p) $ \(PPair _ y) -> y
 
 ---- lifted from https://github.com/Plutonomicon/plutarch/blob/master/examples/Examples/Api.hs ----
 
@@ -233,9 +244,9 @@ tests =
               @?= "(program 1.0.0 (\\i0 -> force i1 1 0))"
         , testCase "newtype in PlutusTx" $
             printShrunkCode $$(PlutusTx.compile [||PubKeyHash||]) @?= "(program 1.0.0 (\\i0 -> i1))"
-        , testCase "exported unit to PlutusTx" $
+        , testCase "export unit to PlutusTx" $
             printShrunkCode (foreignExport (pconstant ()) :: CompiledCode BuiltinUnit) @?= "(program 1.0.0 ())"
-        , testCase "imported unit from PlutusTx" $
+        , testCase "import unit from PlutusTx" $
             printShrunkTerm (foreignImport $$(PlutusTx.compile [||toBuiltin ()||]) :: ClosedTerm PUnit) @?= "(program 1.0.0 ())"
         ]
     , testGroup
@@ -270,12 +281,25 @@ tests =
         "Lists"
         [ testCase "a PlutusTx list of integers" $
             printShrunkCode (PlutusTx.liftCode [1 :: Integer .. 3]) @?= oneTwoThree
-{-
         , testCase "import a list of integers" $
-            printEvaluatedTerm (foreignImport (PlutusTx.liftCode [1 :: Integer .. 3]) :: Term _ (PList PInteger)) @?= oneTwoThree
+            printEvaluatedTerm (foreignImport (PlutusTx.liftCode [1 :: Integer .. 3]) :: Term _ (PDelayedList PInteger)) @?= Right oneTwoThree
         , testCase "import and map over a Value" $
-            printEvaluatedTerm (foreignImport val :: Term _ PSValue) @?= oneTwoThree
--}
+            printEvaluatedTerm (pmap # pfst # (foreignImport (PlutusTx.liftCode val) :: Term _ PSValue))
+              @?= Right "(program 1.0.0 (delay (\\i0 -> \\i0 -> i1 #c0 (delay (\\i0 -> \\i0 -> i1 # (delay (\\i0 -> \\i0 -> i2)))))))"
+        , testCase "import and fold over a Value" $
+            printEvaluatedTerm
+              ( sumValueAmounts # (foreignImport (PlutusTx.liftCode val) :: Term _ PSValue) )
+              @?= Right "(program 1.0.0 3)"
+        , testCase "export a list of integers" $
+            printEvaluatedCode
+              ( foreignExport (pconvertLists #$ pconstant @(PBuiltinList PInteger) [1 .. 3] :: Term _ (PDelayedList PInteger)) ::
+                  CompiledCode [Integer]
+              )
+              @?= Right oneTwoThree
+        , testCase "export a fold and apply it to a Value" $
+            printEvaluatedCode
+              ( (foreignExport sumValueAmounts :: CompiledCode (Value -> Integer)) `PlutusTx.applyCode` PlutusTx.liftCode val )
+              @?= Right "(program 1.0.0 3)"
         ]
     , testGroup
         "Data"
@@ -325,4 +349,5 @@ tests =
   where
     sampleScottEncoding = "(program 1.0.0 (delay (\\i0 -> i1 False 6 \"Hello\")))"
     sampleScottField = "(program 1.0.0 (\\i0 -> force i1 (\\i0 -> \\i0 -> \\i0 -> i2)))"
+    oneTwoThree :: String
     oneTwoThree = "(program 1.0.0 (delay (\\i0 -> \\i0 -> i1 1 (delay (\\i0 -> \\i0 -> i1 2 (delay (\\i0 -> \\i0 -> i1 3 (delay (\\i0 -> \\i0 -> i2)))))))))"
