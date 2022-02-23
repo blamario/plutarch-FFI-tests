@@ -6,7 +6,7 @@ import GHC.Generics (Generic)
 import Generics.SOP qualified as SOP
 import Plutarch (ClosedTerm, compile, printScript, printTerm)
 import Plutarch.Api.V1 (PCurrencySymbol, PPubKeyHash, PScriptContext, PTokenName, PTxInfo)
-import Plutarch.Evaluate (evaluateScript)
+import Plutarch.Evaluate (EvalError, evalScript)
 import Plutarch.FFI (PDelayedList, foreignExport, foreignImport)
 import Plutarch.List (pconvertLists)
 import Plutarch.Prelude
@@ -44,7 +44,7 @@ import Plutus.V1.Ledger.Api (
  )
 import Plutus.V1.Ledger.Contexts qualified as Contexts
 import Plutus.V1.Ledger.Interval qualified as Interval
-import Plutus.V1.Ledger.Scripts (ScriptError, fromCompiledCode)
+import Plutus.V1.Ledger.Scripts (fromCompiledCode)
 import Plutus.V1.Ledger.Value qualified as Value
 import PlutusTx (CompiledCode, applyCode)
 import PlutusTx qualified
@@ -66,17 +66,17 @@ printShrunkCode = printScript . shrink . shrink . shrink . fromCompiledCode
   where
     shrink = shrinkScriptSp (withoutTactics ["strongUnsubs", "weakUnsubs"])
 
-printEvaluatedCode :: CompiledCode a -> Either ScriptError String
-printEvaluatedCode = fmap (printScript . lastOf3) . evaluateScript . fromCompiledCode
+printEvaluatedCode :: CompiledCode a -> Either EvalError String
+printEvaluatedCode = fmap printScript . fstOf3 . evalScript . fromCompiledCode
 
 printShrunkTerm :: ClosedTerm a -> String
 printShrunkTerm x = printScript $ shrinkScript $ compile x
 
-printEvaluatedTerm :: ClosedTerm a -> Either ScriptError String
-printEvaluatedTerm s = fmap (printScript . lastOf3) . evaluateScript $ compile s
+printEvaluatedTerm :: ClosedTerm a -> Either EvalError String
+printEvaluatedTerm s = fmap printScript . fstOf3 . evalScript $ compile s
 
-lastOf3 :: (_, _, a) -> a
-lastOf3 (_, _, x) = x
+fstOf3 :: (a, _, _) -> a
+fstOf3 (x, _, _) = x
 
 double :: CompiledCode (Integer -> Integer)
 double = $$(PlutusTx.compile [||(2 *) :: Integer -> Integer||])
@@ -278,6 +278,19 @@ tests =
               @?= Right "(program 1.0.0 (delay (\\i0 -> i1 #666f6f 4)))"
         ]
     , testGroup
+        "Maybe"
+        [ testCase "a PlutusTx Just Integer" $
+            printShrunkCode (PlutusTx.liftCode (Just 4 :: Maybe Integer)) @?= justFour
+        , testCase "a delayed Plutarch Just Integer" $
+            printTerm (pdelay $ pcon (PJust 4) :: Term _ (PDelayed (PMaybe PInteger))) @?= justFour
+        , testCase "a PlutusTx Nothing" $
+            printShrunkCode (PlutusTx.liftCode (Nothing :: Maybe Integer)) @?= "(program 1.0.0 (delay (\\i0 -> \\i0 -> i1)))"
+        , testCase "a delayed Plutarch Nothing" $
+            printTerm (pcon PNothing :: Term _ (PMaybe PInteger)) @?= "(program 1.0.0 (\\i0 -> \\i0 -> force i1))"
+--        , testCase "import a Just Integer" $
+--            printEvaluatedTerm (foreignImport (PlutusTx.liftCode (Just 4 :: Maybe Integer)) :: Term _ (PDelayed (PMaybe PInteger))) @?= Right justFour
+        ]
+    , testGroup
         "Lists"
         [ testCase "a PlutusTx list of integers" $
             printShrunkCode (PlutusTx.liftCode [1 :: Integer .. 3]) @?= oneTwoThree
@@ -349,5 +362,6 @@ tests =
   where
     sampleScottEncoding = "(program 1.0.0 (delay (\\i0 -> i1 False 6 \"Hello\")))"
     sampleScottField = "(program 1.0.0 (\\i0 -> force i1 (\\i0 -> \\i0 -> \\i0 -> i2)))"
-    oneTwoThree :: String
+    oneTwoThree, justFour :: String
     oneTwoThree = "(program 1.0.0 (delay (\\i0 -> \\i0 -> i1 1 (delay (\\i0 -> \\i0 -> i1 2 (delay (\\i0 -> \\i0 -> i1 3 (delay (\\i0 -> \\i0 -> i2)))))))))"
+    justFour = "(program 1.0.0 (delay (\\i0 -> \\i0 -> i2 4)))"
