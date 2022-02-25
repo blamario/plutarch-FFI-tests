@@ -4,10 +4,11 @@
   inputs.haskell-nix.url = "github:input-output-hk/haskell.nix";
   inputs.nixpkgs.follows = "haskell-nix/nixpkgs-unstable";
   inputs.plutus.url = "github:input-output-hk/plutus";
+  inputs.plutus-apps.url = "github:input-output-hk/plutus-apps";
 
-  outputs = { self, nixpkgs, haskell-nix, plutus }:
+  outputs = inputs@{ self, nixpkgs, haskell-nix, plutus, plutus-apps }:
     let
-      supportedSystems = [ "x86_64-linux" ];
+      supportedSystems = with nixpkgs.lib.systems.supported; tier1 ++ tier2 ++ tier3;
 
       perSystem = nixpkgs.lib.genAttrs supportedSystems;
 
@@ -43,8 +44,12 @@
           };
           sha256map = {
             # put your sha256 map here (or put them in your cabal.project directly)
+#            "https://github.com/Plutonomicon/plutarch.git"."0965fe8a169e026bcf3ad33afff4dbd50519280c"
+#              = "1fwq5cyzkcn7fnzza7fc5rgiky9n7yly34j16i4h8lbp1nxd1aqb";
             "https://github.com/Plutonomicon/plutarch.git"."1a9529c757c331f3e0f30234d6e5d6753304f8ed"
               = "0i5xxra1hrx90hl1m7pqp1w2ck259bqkxpjpd6jcwdf7zvlmmaac";
+            "https://github.com/Liqwid-Labs/plutus-extra/"."1ccf21b88feb94696e2adb7575b84dba99c52611"
+              = "0rpfjxv5n48kpwzw4qzcya6ap8wjjnfga2rdbkq5f74sqm6qa8s5";
             "https://github.com/input-output-hk/cardano-addresses"."71006f9eb956b0004022e80aadd4ad50d837b621"
               = "11dl3fmq7ry5wdmz8kw07ji8yvrxnrsf7pgilw5q9mi4aqyvnaqk";
             "https://github.com/input-output-hk/cardano-base"."41545ba3ac6b3095966316a99883d678b5ab8da8"
@@ -64,9 +69,17 @@
             "https://github.com/input-output-hk/iohk-monitoring-framework"."46f994e216a1f8b36fe4669b47b2a7011b0e153c"
               = "1il8fx3misp3650ryj368b3x95ksz01zz3x0z9k00807j93d0ka0";
             "https://github.com/input-output-hk/ouroboros-network"."d2d219a86cda42787325bb8c20539a75c2667132"
-              = "18xk7r0h2pxrbx76d6flsxifh0a9rz1cj1rjqs1pbs5kdmy8b7kx";
-            "https://github.com/input-output-hk/plutus"."61a9a0fbeae5eaf944e9e09e47c0a42fe5cb2c2a"
-              = "1c9m4dvrwajccm7f7f6yish6986a43kzl60dv3xafa5266b5f7yb";
+            = "18xk7r0h2pxrbx76d6flsxifh0a9rz1cj1rjqs1pbs5kdmy8b7kx";
+#            "https://github.com/input-output-hk/plutus"."cc72a56eafb02333c96f662581b57504f8f8992f"
+#              = "1w89ikv3jsg5x9xf7qpcjnix3nf016z0xpf48q5238h4ngvcqp9y";
+            "https://github.com/input-output-hk/plutus"."3f93f74bc565ec4ed0b1e1e9dbea1b7bb12f6bac"
+              = "005649vs2m7bm2wfxckyilakp9drxmxai5rypkw7xzzl12f8r6n3";
+            "https://github.com/input-output-hk/plutus"."d4f933d25ecc35a9c5bb057f5cf462112129cfdb"
+              = "1l6r2jlrxgswy9k59x5rapcw2035h1vs563k4vk6a9c4nhid1444";
+#            "https://github.com/input-output-hk/plutus"."61a9a0fbeae5eaf944e9e09e47c0a42fe5cb2c2a"
+#              = "1c9m4dvrwajccm7f7f6yish6986a43kzl60dv3xafa5266b5f7yb";
+            "https://github.com/input-output-hk/plutus-apps"."13836ecf59649ca522471417b07fb095556eb981"
+              = "02hwxqvfi14x0mvg6cppyihqy9hqxq05yzlb2aglgm9fbwsd3fqs";
             "https://github.com/Quid2/flat"."ee59880f47ab835dbd73bea0847dab7869fc20d8"
               = "1lrzknw765pz2j97nvv9ip3l1mcpf2zr4n56hwlz0rk7wq7ls4cm";
             "https://github.com/input-output-hk/purescript-bridge"."47a1f11825a0f9445e0f98792f79172efef66c00"
