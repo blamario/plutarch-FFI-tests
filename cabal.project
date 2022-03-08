@@ -32,7 +32,7 @@ package cardano-wallet-core-integration
 source-repository-package
   type: git
   location: https://github.com/plutonomicon/Plutarch
-  tag: 55bb381a6cd5cd40a0c77f1005e93c6f60e865fe
+  tag: 5b32f8d03c956bd57e962762b533f1cd6044d036
 
 source-repository-package
   type: git

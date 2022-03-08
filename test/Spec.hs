@@ -7,7 +7,7 @@ import Generics.SOP qualified as SOP
 import Plutarch (ClosedTerm, compile, printScript, printTerm)
 import Plutarch.Api.V1 (PCurrencySymbol, PPubKeyHash, PScriptContext, PTokenName, PTxInfo)
 import Plutarch.Evaluate (EvalError, evalScript)
-import Plutarch.FFI (PDelayedList, foreignExport, foreignImport)
+import Plutarch.FFI (PDelayedList, foreignExport, foreignImport, opaqueExport, opaqueImport)
 import Plutarch.List (pconvertLists)
 import Plutarch.Prelude
 import Plutarch.Rec qualified as Rec
@@ -248,6 +248,15 @@ tests =
             printShrunkCode (foreignExport (pconstant ()) :: CompiledCode BuiltinUnit) @?= "(program 1.0.0 ())"
         , testCase "import unit from PlutusTx" $
             printShrunkTerm (foreignImport $$(PlutusTx.compile [||toBuiltin ()||]) :: ClosedTerm PUnit) @?= "(program 1.0.0 ())"
+        ]
+    , testGroup
+        "Opaque"
+        [ testCase "Export an integer and ignore it" $
+            printCode ($$(PlutusTx.compile [|| const (7 :: Integer) ||]) `applyCode` opaqueExport (4 :: ClosedTerm PInteger))
+              @?= "(program 1.0.0 ((\\i0 -> 7) 4))"
+        , testCase "Import an integer and ignore it" $
+            printTerm (plam (\_ -> 4 :: ClosedTerm PInteger) # opaqueImport (PlutusTx.liftCode (7 :: Integer)))
+              @?= "(program 1.0.0 ((\\i0 -> 4) 7))"
         ]
     , testGroup
         "Records"

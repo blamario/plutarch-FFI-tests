@@ -44,8 +44,8 @@
           };
           sha256map = {
             # put your sha256 map here (or put them in your cabal.project directly)
-            "https://github.com/plutonomicon/Plutarch"."55bb381a6cd5cd40a0c77f1005e93c6f60e865fe"
-              = "0bq69qb9k2lnwl3sqayjg0k0g2jghmigj3kgq4r20ayb88l4iall";
+            "https://github.com/plutonomicon/Plutarch"."5b32f8d03c956bd57e962762b533f1cd6044d036"
+              = "1nfqaz3pczg7vnf3vcm98yz2ippi1migs5xjywvgvf5h28zhm30p";
             "https://github.com/Liqwid-Labs/plutus-extra/"."1ccf21b88feb94696e2adb7575b84dba99c52611"
               = "0rpfjxv5n48kpwzw4qzcya6ap8wjjnfga2rdbkq5f74sqm6qa8s5";
             "https://github.com/input-output-hk/cardano-addresses"."71006f9eb956b0004022e80aadd4ad50d837b621"
@@ -68,14 +68,8 @@
               = "1il8fx3misp3650ryj368b3x95ksz01zz3x0z9k00807j93d0ka0";
             "https://github.com/input-output-hk/ouroboros-network"."d2d219a86cda42787325bb8c20539a75c2667132"
             = "18xk7r0h2pxrbx76d6flsxifh0a9rz1cj1rjqs1pbs5kdmy8b7kx";
-#            "https://github.com/input-output-hk/plutus"."cc72a56eafb02333c96f662581b57504f8f8992f"
-#              = "1w89ikv3jsg5x9xf7qpcjnix3nf016z0xpf48q5238h4ngvcqp9y";
-#            "https://github.com/input-output-hk/plutus"."3f93f74bc565ec4ed0b1e1e9dbea1b7bb12f6bac"
-#              = "005649vs2m7bm2wfxckyilakp9drxmxai5rypkw7xzzl12f8r6n3";
             "https://github.com/input-output-hk/plutus"."d4f933d25ecc35a9c5bb057f5cf462112129cfdb"
               = "1l6r2jlrxgswy9k59x5rapcw2035h1vs563k4vk6a9c4nhid1444";
-#            "https://github.com/input-output-hk/plutus"."61a9a0fbeae5eaf944e9e09e47c0a42fe5cb2c2a"
-#              = "1c9m4dvrwajccm7f7f6yish6986a43kzl60dv3xafa5266b5f7yb";
             "https://github.com/input-output-hk/plutus-apps"."13836ecf59649ca522471417b07fb095556eb981"
               = "02hwxqvfi14x0mvg6cppyihqy9hqxq05yzlb2aglgm9fbwsd3fqs";
             "https://github.com/Quid2/flat"."ee59880f47ab835dbd73bea0847dab7869fc20d8"
