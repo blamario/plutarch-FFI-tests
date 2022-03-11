@@ -44,8 +44,8 @@
           };
           sha256map = {
             # put your sha256 map here (or put them in your cabal.project directly)
-            "https://github.com/plutonomicon/Plutarch"."5b32f8d03c956bd57e962762b533f1cd6044d036"
-              = "1nfqaz3pczg7vnf3vcm98yz2ippi1migs5xjywvgvf5h28zhm30p";
+            "https://github.com/plutonomicon/Plutarch"."de963f641d7474d14f9089bbf97cb1754c35093f"
+              = "138mxkwad39jlx0rdqiasfmq0q29przdvqixwwa8m6kxjggny6si";
             "https://github.com/Liqwid-Labs/plutus-extra/"."1ccf21b88feb94696e2adb7575b84dba99c52611"
               = "0rpfjxv5n48kpwzw4qzcya6ap8wjjnfga2rdbkq5f74sqm6qa8s5";
             "https://github.com/input-output-hk/cardano-addresses"."71006f9eb956b0004022e80aadd4ad50d837b621"

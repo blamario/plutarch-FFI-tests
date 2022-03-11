@@ -7,7 +7,16 @@ import Generics.SOP qualified as SOP
 import Plutarch (ClosedTerm, compile, printScript, printTerm)
 import Plutarch.Api.V1 (PCurrencySymbol, PPubKeyHash, PScriptContext, PTokenName, PTxInfo)
 import Plutarch.Evaluate (EvalError, evalScript)
-import Plutarch.FFI (PDelayedList, foreignExport, foreignImport, opaqueExport, opaqueImport)
+import Plutarch.FFI (
+  PTxList,
+  PTxMaybe (PTxJust, PTxNothing),
+  foreignExport,
+  foreignImport,
+  opaqueExport,
+  opaqueImport,
+  pmaybeFromTx,
+  pmaybeToTx,
+ )
 import Plutarch.List (pconvertLists)
 import Plutarch.Prelude
 import Plutarch.Rec qualified as Rec
@@ -132,13 +141,13 @@ importedTxSignedBy' = foreignImport $$(PlutusTx.compile [||txDataSignedBy||])
 
 type PSValue = PSMap PCurrencySymbol (PSMap PTokenName PInteger)
 
-type PSMap k v = PDelayedList (PDelayed (PPair k v))
+type PSMap k v = PTxList (PDelayed (PPair k v))
 
 sumValueAmounts :: Term _ (PSValue :--> PInteger)
 sumValueAmounts =
   pfoldl
-  # (plam $ \s vals -> pfoldl # (plam $ \s' p -> s' Prelude.+ psnd # p) # s # (psnd # vals))
-  # 0
+    # (plam $ \s vals -> pfoldl # (plam $ \s' p -> s' Prelude.+ psnd # p) # s # (psnd # vals))
+    # 0
 
 pfst :: Term s (PDelayed (PPair a b) :--> a)
 pfst = plam $ \p -> pmatch (pforce p) $ \(PPair x _) -> x
@@ -252,7 +261,7 @@ tests =
     , testGroup
         "Opaque"
         [ testCase "Export an integer and ignore it" $
-            printCode ($$(PlutusTx.compile [|| const (7 :: Integer) ||]) `applyCode` opaqueExport (4 :: ClosedTerm PInteger))
+            printCode ($$(PlutusTx.compile [||const (7 :: Integer)||]) `applyCode` opaqueExport (4 :: ClosedTerm PInteger))
               @?= "(program 1.0.0 ((\\i0 -> 7) 4))"
         , testCase "Import an integer and ignore it" $
             printTerm (plam (\_ -> 4 :: ClosedTerm PInteger) # opaqueImport (PlutusTx.liftCode (7 :: Integer)))
@@ -290,37 +299,51 @@ tests =
         "Maybe"
         [ testCase "a PlutusTx Just Integer" $
             printShrunkCode (PlutusTx.liftCode (Just 4 :: Maybe Integer)) @?= justFour
-        , testCase "a delayed Plutarch Just Integer" $
-            printTerm (pdelay $ pcon (PJust 4) :: Term _ (PDelayed (PMaybe PInteger))) @?= justFour
+        , testCase "a converted Plutarch PJust PInteger" $
+            printShrunkTerm (pmaybeToTx # (pcon (PJust 4) :: Term _ (PMaybe PInteger))) @?= justFour
+        , testCase "a Plutarch PTxJust PInteger" $
+            printTerm (pcon (PTxJust 4) :: Term _ (PTxMaybe PInteger)) @?= justFour
+        , testCase "a converted Plutarch PTxJust PInteger" $
+            printShrunkTerm (pmaybeFromTx # (pcon $ PTxJust 4) :: Term _ (PMaybe PInteger)) @?= "(program 1.0.0 (\\i0 -> \\i0 -> i2 4))"
         , testCase "a PlutusTx Nothing" $
-            printShrunkCode (PlutusTx.liftCode (Nothing :: Maybe Integer)) @?= "(program 1.0.0 (delay (\\i0 -> \\i0 -> i1)))"
-        , testCase "a delayed Plutarch Nothing" $
-            printTerm (pcon PNothing :: Term _ (PMaybe PInteger)) @?= "(program 1.0.0 (\\i0 -> \\i0 -> force i1))"
---        , testCase "import a Just Integer" $
---            printEvaluatedTerm (foreignImport (PlutusTx.liftCode (Just 4 :: Maybe Integer)) :: Term _ (PDelayed (PMaybe PInteger))) @?= Right justFour
+            printShrunkCode (PlutusTx.liftCode (Nothing :: Maybe Integer)) @?= nothing
+        , testCase "a converted Plutarch PNothing" $
+            printShrunkTerm (pmaybeToTx # (pcon PNothing :: Term _ (PMaybe PInteger))) @?= nothing
+        , testCase "a Plutarch PTxNothing" $
+            printTerm (pcon PTxNothing :: Term _ (PTxMaybe PInteger)) @?= nothing
+        , testCase "a converted Plutarch PTxNothing" $
+            printShrunkTerm (pmaybeFromTx # (pcon PTxNothing) :: Term _ (PMaybe PInteger)) @?= "(program 1.0.0 (\\i0 -> \\i0 -> force i1))"
+        , testCase "import a Just Integer" $
+            printEvaluatedTerm (foreignImport (PlutusTx.liftCode (Just 4 :: Maybe Integer)) :: Term _ (PTxMaybe PInteger)) @?= Right justFour
+        , testCase "export a PTxJust PInteger" $
+            printEvaluatedCode
+              ( (foreignExport (pcon (PTxJust 4) :: Term _ (PTxMaybe PInteger))) ::
+                  CompiledCode (Maybe Integer)
+              )
+              @?= Right justFour
         ]
     , testGroup
         "Lists"
         [ testCase "a PlutusTx list of integers" $
             printShrunkCode (PlutusTx.liftCode [1 :: Integer .. 3]) @?= oneTwoThree
         , testCase "import a list of integers" $
-            printEvaluatedTerm (foreignImport (PlutusTx.liftCode [1 :: Integer .. 3]) :: Term _ (PDelayedList PInteger)) @?= Right oneTwoThree
+            printEvaluatedTerm (foreignImport (PlutusTx.liftCode [1 :: Integer .. 3]) :: Term _ (PTxList PInteger)) @?= Right oneTwoThree
         , testCase "import and map over a Value" $
             printEvaluatedTerm (pmap # pfst # (foreignImport (PlutusTx.liftCode val) :: Term _ PSValue))
               @?= Right "(program 1.0.0 (delay (\\i0 -> \\i0 -> i1 #c0 (delay (\\i0 -> \\i0 -> i1 # (delay (\\i0 -> \\i0 -> i2)))))))"
         , testCase "import and fold over a Value" $
             printEvaluatedTerm
-              ( sumValueAmounts # (foreignImport (PlutusTx.liftCode val) :: Term _ PSValue) )
+              (sumValueAmounts # (foreignImport (PlutusTx.liftCode val) :: Term _ PSValue))
               @?= Right "(program 1.0.0 3)"
         , testCase "export a list of integers" $
             printEvaluatedCode
-              ( foreignExport (pconvertLists #$ pconstant @(PBuiltinList PInteger) [1 .. 3] :: Term _ (PDelayedList PInteger)) ::
+              ( foreignExport (pconvertLists #$ pconstant @(PBuiltinList PInteger) [1 .. 3] :: Term _ (PTxList PInteger)) ::
                   CompiledCode [Integer]
               )
               @?= Right oneTwoThree
         , testCase "export a fold and apply it to a Value" $
             printEvaluatedCode
-              ( (foreignExport sumValueAmounts :: CompiledCode (Value -> Integer)) `PlutusTx.applyCode` PlutusTx.liftCode val )
+              ((foreignExport sumValueAmounts :: CompiledCode (Value -> Integer)) `PlutusTx.applyCode` PlutusTx.liftCode val)
               @?= Right "(program 1.0.0 3)"
         ]
     , testGroup
@@ -374,3 +397,4 @@ tests =
     oneTwoThree, justFour :: String
     oneTwoThree = "(program 1.0.0 (delay (\\i0 -> \\i0 -> i1 1 (delay (\\i0 -> \\i0 -> i1 2 (delay (\\i0 -> \\i0 -> i1 3 (delay (\\i0 -> \\i0 -> i2)))))))))"
     justFour = "(program 1.0.0 (delay (\\i0 -> \\i0 -> i2 4)))"
+    nothing = "(program 1.0.0 (delay (\\i0 -> \\i0 -> i1)))"
