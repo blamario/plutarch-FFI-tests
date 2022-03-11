@@ -1,4 +1,13 @@
 # plutus-scaffold
+
+[![Hercules-ci][Herc badge]][Herc link]
+[![Cachix Cache][Cachix badge]][Cachix link]
+
+[Herc badge]: https://img.shields.io/badge/ci--by--hercules-green.svg
+[Herc link]: https://hercules-ci.com/github/blamario/plutarch-FFI-tests
+[Cachix badge]: https://img.shields.io/badge/cachix-public--plutonomicon-blue.svg
+[Cachix link]: https://public-plutonomicon.cachix.org
+
 This project contains the build systems and scripts needed to scaffold a plutus project quickly.
 
 ## Running
